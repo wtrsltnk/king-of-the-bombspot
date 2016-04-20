@@ -2,8 +2,8 @@
 #define QUICKVERTEXBUFFER_H
 
 #include <GL/glextl.h>
-#include <vector>
 #include <glm/glm.hpp>
+#include <vector>
 
 class QuickVertexBuffer
 {

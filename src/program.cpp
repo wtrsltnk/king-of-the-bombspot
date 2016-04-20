@@ -1,15 +1,18 @@
 #include "program.h"
+#include "filesystem.h"
 #include "common/settings.h"
 #include "common/log.h"
-#include <iostream>
+
+#include <hl1bspinstance.h>
 #include <SDL.h>
 #include <glm/gtc/matrix_transform.hpp>
+#include <iostream>
 
 Application* gApp = new Program();
 static FileLoggingStrategy fileLogging;
 
 Program::Program()
-    : _pan(false), _lastX(0), _lastY(0)
+    : _pan(false), _lastX(0), _lastY(0), _asset(nullptr), _instance(nullptr)
 {
     Settings::Instance()->LoadFromDisk("king-of-the-bombspot.settings");
     Setting("Viewer.PauseAnimation").Register(false);
@@ -37,6 +40,15 @@ bool Program::InitializeGraphics()
 
     this->_cam.MoveForward(-120.0f);
 
+    if (this->_sys->GetArgs().size() > 1)
+    {
+        std::string filename = this->_sys->GetArgs()[1];
+
+        this->_asset = new Hl1BspAsset(FileSystem::LoadFileData);
+        if (this->_asset != nullptr
+                && this->_asset->Load(filename))
+            this->_instance = this->_asset->CreateInstance();
+    }
     return true;
 }
 
@@ -60,14 +72,16 @@ void Program::GameLoop()
     double updateDiff = time - lastUpdateTime;
     if (updateDiff > 1.0/60.0)
     {
-        // Update scene here
+        if (this->_instance != nullptr && Setting("Viewer.PauseAnimation").AsBool() == false)
+            this->_instance->Update(updateDiff);
 
         lastUpdateTime = time;
     }
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Render scene here
+    if (this->_instance != nullptr)
+        this->_instance->Render(this->_proj, this->_cam.GetViewMatrix());
 }
 
 bool Program::IsRunning()

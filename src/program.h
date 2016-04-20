@@ -2,11 +2,10 @@
 #define _PROGRAM_H_
 
 #include <GL/glextl.h>
+#include <glm/glm.hpp>
 #include "common/application.h"
 #include "common/camera.h"
-#include <glm/glm.hpp>
-#include <string>
-#include <map>
+#include <hl1types.h>
 
 class Program : public Application
 {
@@ -45,7 +44,8 @@ private:
     bool _pan;
     Camera _cam;
 
-    std::map<std::string, std::string> _config;
+    Hl1Asset* _asset;
+    Hl1Instance* _instance;
 
 };
 
