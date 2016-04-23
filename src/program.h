@@ -18,7 +18,7 @@ public:
     int Width() { return this->_width; }
     int Height() { return this->_height; }
 public:
-    virtual const char* GetWindowTitle() { return "cs-tribute"; }
+    virtual const char* GetWindowTitle() { return "King of the Bombspot"; }
     virtual void GetContextAttributes(int& major, int& minor, bool& core) { major = 3; minor = 1; core = false; }
     virtual int GetWindowFlags();
 

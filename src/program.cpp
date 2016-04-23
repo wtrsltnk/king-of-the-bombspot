@@ -44,7 +44,7 @@ bool Program::InitializeGraphics()
     {
         std::string filename = this->_sys->GetArgs()[1];
 
-        this->_asset = new Hl1BspAsset(FileSystem::LoadFileData);
+        this->_asset = new Hl1BspAsset(FileSystem::LocateDataFile, FileSystem::LoadFileData);
         if (this->_asset != nullptr
                 && this->_asset->Load(filename))
             this->_instance = this->_asset->CreateInstance();
@@ -79,6 +79,9 @@ void Program::GameLoop()
     }
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glEnable(GL_ALPHA_TEST);
+    glAlphaFunc(GL_GEQUAL, 0.8f);
 
     if (this->_instance != nullptr)
         this->_instance->Render(this->_proj, this->_cam.GetViewMatrix());
