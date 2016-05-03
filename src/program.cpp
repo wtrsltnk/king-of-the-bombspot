@@ -68,6 +68,7 @@ bool Program::InitializeGraphics()
                 for (int e = 0; e < face.edgeCount; e++)
                 {
                     int ei = this->_asset->_surfedgeData[face.firstEdge + e];
+                    edges[ei < 0 ? -ei : ei].index = ei < 0 ? -ei : ei;
                     edges[ei < 0 ? -ei : ei].neighbours.insert(f);
                     edges[ei < 0 ? -ei : ei].cornerIndices.push_back(_asset->_edgeData[ei < 0 ? -ei : ei].vertex[0]);
                     edges[ei < 0 ? -ei : ei].cornerIndices.push_back(_asset->_edgeData[ei < 0 ? -ei : ei].vertex[1]);
@@ -82,7 +83,10 @@ bool Program::InitializeGraphics()
                 {
                     int ei = this->_asset->_surfedgeData[face.firstEdge + e];
                     auto edge = edges[ei < 0 ? -ei : ei];
+                    faces[f].index = f;
                     faces[f].neighbours.insert(edge.neighbours.begin(), edge.neighbours.end());
+                    faces[f].cornerIndices.push_back(_asset->_edgeData[ei < 0 ? -ei : ei].vertex[0]);
+                    faces[f].cornerIndices.push_back(_asset->_edgeData[ei < 0 ? -ei : ei].vertex[1]);
                 }
                 faces[f].neighbours.erase(f);
             }
@@ -124,9 +128,19 @@ void Program::GameLoop()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glDisable(GL_ALPHA_TEST);
-    for (int i = 0; i < edges.count; i++)
+//    for (int i = 0; i < edges.count; i++)
+//    {
+//        buf->RenderSubSet(this->_proj * this->_cam.GetViewMatrix(), edges[i].cornerIndices);
+//    }
+    for (int i = 0; i < faces.count; i++)
     {
-        buf->RenderSubSet(this->_proj * this->_cam.GetViewMatrix(), edges[i].cornerIndices);
+        if (glm::dot(_asset->_faces[i].plane.normal, glm::vec3(0.0f, 0.0f, 1.0f)) < 0.7f)
+            continue;
+        if (_asset->_faces[i].flags != 0)
+            continue;
+        if (_asset->_textures[_asset->_faces[i].texture].Name()[0] == '!')
+            continue;
+        buf->RenderSubSet(this->_proj * this->_cam.GetViewMatrix(), faces[i].cornerIndices);
     }
 
     glEnable(GL_ALPHA_TEST);
