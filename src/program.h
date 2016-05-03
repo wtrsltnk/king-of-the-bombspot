@@ -5,7 +5,8 @@
 #include <glm/glm.hpp>
 #include "common/application.h"
 #include "common/camera.h"
-#include <hl1types.h>
+#include <hl1bspasset.h>
+#include <hl1bspinstance.h>
 
 class Program : public Application
 {
@@ -44,8 +45,8 @@ private:
     bool _pan;
     Camera _cam;
 
-    Hl1Asset* _asset;
-    Hl1Instance* _instance;
+    Hl1BspAsset* _asset;
+    Hl1BspInstance* _instance;
 
 };
 

@@ -12,10 +12,11 @@ public:
     virtual ~QuickVertexBuffer();
 
     void Render(const glm::mat4& matrix);
+    void RenderSubSet(const glm::mat4& matrix, const std::vector<int>& indices);
 
+    static GLuint _program;
     GLuint _shapeType;
     GLuint _vertexCount;
-    GLuint _program;
     GLuint _u_matrix;
     GLuint _vertexArrayObject;
     GLuint _vertexBufferObject;

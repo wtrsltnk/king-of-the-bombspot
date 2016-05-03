@@ -27,16 +27,18 @@ const std::string fragmentShader(
         "}"
     );
 
+GLuint QuickVertexBuffer::_program = 0;
+
 QuickVertexBuffer::QuickVertexBuffer(GLuint shapeType, const std::vector<glm::vec3>& vertices)
     : _shapeType(shapeType), _vertexCount(vertices.size()),
-      _program(0), _u_matrix(0), _vertexArrayObject(0), _vertexBufferObject(0)
+      _u_matrix(0), _vertexArrayObject(0), _vertexBufferObject(0)
 {
-    if (this->_program == 0)
-        this->_program = LoadShaderProgram(vertexShader, fragmentShader);
-    glUseProgram(this->_program);
+    if (QuickVertexBuffer::_program == 0)
+        QuickVertexBuffer::_program = LoadShaderProgram(vertexShader, fragmentShader);
+    glUseProgram(QuickVertexBuffer::_program);
 
     if (this->_u_matrix == 0)
-        this->_u_matrix = glGetUniformLocation(this->_program, "u_matrix");
+        this->_u_matrix = glGetUniformLocation(QuickVertexBuffer::_program, "u_matrix");
 
     if (this->_vertexArrayObject == 0)
         glGenVertexArrays(1, &this->_vertexArrayObject);
@@ -47,7 +49,7 @@ QuickVertexBuffer::QuickVertexBuffer(GLuint shapeType, const std::vector<glm::ve
     glBindBuffer(GL_ARRAY_BUFFER, this->_vertexBufferObject);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), (const GLvoid *)&vertices[0].x, GL_STATIC_DRAW);
 
-    GLint vertexAttrib = glGetAttribLocation(this->_program, "vertex");
+    GLint vertexAttrib = glGetAttribLocation(QuickVertexBuffer::_program, "vertex");
     glVertexAttribPointer(vertexAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), 0);
     glEnableVertexAttribArray(vertexAttrib);
 
@@ -59,11 +61,23 @@ QuickVertexBuffer::~QuickVertexBuffer()
 
 void QuickVertexBuffer::Render(const glm::mat4& matrix)
 {
-    glUseProgram(this->_program);
+    glUseProgram(QuickVertexBuffer::_program);
     glUniformMatrix4fv(this->_u_matrix, 1, false, glm::value_ptr(matrix));
 
     glBindVertexArray(this->_vertexArrayObject);
     glDrawArrays(this->_shapeType, 0, this->_vertexCount);
     glBindVertexArray(0);
 }
+
+void QuickVertexBuffer::RenderSubSet(const glm::mat4& matrix, const std::vector<int>& indices)
+{
+    const int* i = &(indices[0]);
+    glUseProgram(QuickVertexBuffer::_program);
+    glUniformMatrix4fv(this->_u_matrix, 1, false, glm::value_ptr(matrix));
+
+    glBindVertexArray(this->_vertexArrayObject);
+    glDrawElements(this->_shapeType, indices.size(), GL_UNSIGNED_INT, (const GLvoid*)i);
+    glBindVertexArray(0);
+}
+
 

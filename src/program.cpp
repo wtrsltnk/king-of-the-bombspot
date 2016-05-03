@@ -2,6 +2,7 @@
 #include "filesystem.h"
 #include "common/settings.h"
 #include "common/log.h"
+#include "quickvertexbuffer.h"
 
 #include <hl1bspinstance.h>
 #include <SDL.h>
@@ -30,6 +31,17 @@ bool Program::InitializeApplication(System* sys)
     return true;
 }
 
+typedef struct {
+    int index;
+    std::set<int> neighbours;
+    std::vector<int> cornerIndices;
+
+} element;
+
+QuickVertexBuffer* buf = nullptr;
+Array<element> edges;
+Array<element> faces;
+
 bool Program::InitializeGraphics()
 {
     std::cout << "GL_VERSION                  : " << glGetString(GL_VERSION) << std::endl;
@@ -45,9 +57,40 @@ bool Program::InitializeGraphics()
         std::string filename = this->_sys->GetArgs()[1];
 
         this->_asset = new Hl1BspAsset(FileSystem::LocateDataFile, FileSystem::LoadFileData);
-        if (this->_asset != nullptr
-                && this->_asset->Load(filename))
-            this->_instance = this->_asset->CreateInstance();
+        if (this->_asset != nullptr && this->_asset->Load(filename))
+        {
+            this->_instance = (Hl1BspInstance*)this->_asset->CreateInstance();
+
+            edges.Allocate(this->_asset->_edgeData.count);
+            for (int f = 0; f < this->_asset->_faceData.count; f++)
+            {
+                HL1::tBSPFace& face = this->_asset->_faceData[f];
+                for (int e = 0; e < face.edgeCount; e++)
+                {
+                    int ei = this->_asset->_surfedgeData[face.firstEdge + e];
+                    edges[ei < 0 ? -ei : ei].neighbours.insert(f);
+                    edges[ei < 0 ? -ei : ei].cornerIndices.push_back(_asset->_edgeData[ei < 0 ? -ei : ei].vertex[0]);
+                    edges[ei < 0 ? -ei : ei].cornerIndices.push_back(_asset->_edgeData[ei < 0 ? -ei : ei].vertex[1]);
+                }
+            }
+
+            faces.Allocate(this->_asset->_faceData.count);
+            for (int f = 0; f < this->_asset->_faceData.count; f++)
+            {
+                HL1::tBSPFace& face = this->_asset->_faceData[f];
+                for (int e = 0; e < face.edgeCount; e++)
+                {
+                    int ei = this->_asset->_surfedgeData[face.firstEdge + e];
+                    auto edge = edges[ei < 0 ? -ei : ei];
+                    faces[f].neighbours.insert(edge.neighbours.begin(), edge.neighbours.end());
+                }
+                faces[f].neighbours.erase(f);
+            }
+
+            std::vector<glm::vec3> verts;
+            for (int v = 0; v < _asset->_verticesData.count; v++) verts.push_back(_asset->_verticesData[v].point);
+            buf = new QuickVertexBuffer(GL_LINES, verts);
+        }
     }
     return true;
 }
@@ -80,11 +123,18 @@ void Program::GameLoop()
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    glDisable(GL_ALPHA_TEST);
+    for (int i = 0; i < edges.count; i++)
+    {
+        buf->RenderSubSet(this->_proj * this->_cam.GetViewMatrix(), edges[i].cornerIndices);
+    }
+
     glEnable(GL_ALPHA_TEST);
     glAlphaFunc(GL_GEQUAL, 0.8f);
-
     if (this->_instance != nullptr)
+    {
         this->_instance->Render(this->_proj, this->_cam.GetViewMatrix());
+    }
 }
 
 bool Program::IsRunning()
