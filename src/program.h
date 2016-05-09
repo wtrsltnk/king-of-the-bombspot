@@ -3,10 +3,28 @@
 
 #include <GL/glextl.h>
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include "common/application.h"
 #include "common/camera.h"
 #include <hl1bspasset.h>
 #include <hl1bspinstance.h>
+#include <hl1mdlinstance.h>
+
+class Object
+{
+public:
+    Object() : _parent(nullptr), _instance(nullptr) { }
+
+    glm::mat4 LocalMatrix() const;
+    glm::mat4 WorldMatrix() const;
+
+    Object* _parent;
+    glm::quat _rotation;
+    glm::vec3 _position;
+    Hl1Instance* _instance;
+
+    void Render(const glm::mat4& proj);
+};
 
 class Program : public Application
 {
@@ -47,6 +65,8 @@ private:
 
     Hl1BspAsset* _asset;
     Hl1BspInstance* _instance;
+
+    std::vector<Object*> _objects;
 
 };
 

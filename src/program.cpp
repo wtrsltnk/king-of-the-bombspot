@@ -8,9 +8,32 @@
 #include <SDL.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
+#include <sstream>
 
 Application* gApp = new Program();
 static FileLoggingStrategy fileLogging;
+
+glm::mat4 Object::LocalMatrix() const
+{
+    return glm::translate(glm::toMat4(this->_rotation), this->_position);
+}
+
+glm::mat4 Object::WorldMatrix() const
+{
+    glm::mat4 view = this->LocalMatrix();
+
+    if (this->_parent != nullptr) view = this->_parent->WorldMatrix() * this->LocalMatrix();
+
+    return view;
+}
+
+void Object::Render(const glm::mat4 &proj)
+{
+    if (this->_instance != nullptr)
+    {
+        this->_instance->Render(proj, this->WorldMatrix());
+    }
+}
 
 Program::Program()
     : _pan(false), _lastX(0), _lastY(0), _asset(nullptr), _instance(nullptr)
@@ -42,6 +65,34 @@ QuickVertexBuffer* buf = nullptr;
 Array<element> edges;
 Array<element> faces;
 
+std::ostream& operator << (std::ostream& os, const glm::vec2& v)
+{
+    os << "[" << v[0] << ", " << v[1] << "]";
+    return os;
+}
+
+std::ostream& operator << (std::ostream& os, const glm::vec3& v)
+{
+    os << "[" << v[0] << ", " << v[1] << ", " << v[2] << "]";
+    return os;
+}
+
+std::ostream& operator << (std::ostream& os, const glm::vec4& v)
+{
+    os << "[" << v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << "]";
+    return os;
+}
+
+glm::vec3 ParseVec3(const std::string& str)
+{
+    double x, y, z;
+    std::stringstream ss(str);
+
+    ss >> x >> y >> z;
+
+    return glm::vec3(x, y, z);
+}
+
 bool Program::InitializeGraphics()
 {
     std::cout << "GL_VERSION                  : " << glGetString(GL_VERSION) << std::endl;
@@ -55,11 +106,28 @@ bool Program::InitializeGraphics()
     if (this->_sys->GetArgs().size() > 1)
     {
         std::string filename = this->_sys->GetArgs()[1];
-
         this->_asset = new Hl1BspAsset(FileSystem::LocateDataFile, FileSystem::LoadFileData);
         if (this->_asset != nullptr && this->_asset->Load(filename))
         {
             this->_instance = (Hl1BspInstance*)this->_asset->CreateInstance();
+
+            auto mdlAsset = new Hl1MdlAsset(FileSystem::LocateDataFile, FileSystem::LoadFileData);
+            mdlAsset->Load("..\\king-of-the-bombspot\\data\\sas.mdl");
+
+            for (auto itr = this->_asset->_entities.begin(); itr != _asset->_entities.end(); ++itr)
+            {
+                HL1::tBSPEntity& entity = *itr;
+                if (entity.classname == "info_player_start"
+                        && entity.keyvalues.find("origin") != entity.keyvalues.end())
+                {
+                    std::string origin = entity.keyvalues.at("origin");
+
+                    auto obj = new Object();
+                    obj->_instance = mdlAsset->CreateInstance();
+                    obj->_position = ParseVec3(origin);
+                    this->_objects.push_back(obj);
+                }
+            }
 
             edges.Allocate(this->_asset->_edgeData.count);
             for (int f = 0; f < this->_asset->_faceData.count; f++)
@@ -149,6 +217,9 @@ void Program::GameLoop()
     {
         this->_instance->Render(this->_proj, this->_cam.GetViewMatrix());
     }
+
+    for (auto obj = this->_objects.begin(); obj != this->_objects.end(); ++obj)
+        (*obj)->Render(this->_proj * this->_cam.GetViewMatrix());
 }
 
 bool Program::IsRunning()
