@@ -39,7 +39,6 @@ Program::Program()
     : _pan(false), _lastX(0), _lastY(0), _asset(nullptr), _instance(nullptr)
 {
     Settings::Instance()->LoadFromDisk("king-of-the-bombspot.settings");
-    Setting("Viewer.PauseAnimation").Register(false);
     Setting("Viewer.Camera.Speed").Register(200.0f);
     Logging::Instance()->SetStrategy(&fileLogging);
 }
@@ -124,6 +123,7 @@ bool Program::InitializeGraphics()
 
                     auto obj = new Object();
                     obj->_instance = mdlAsset->CreateInstance();
+                    ((Hl1MdlInstance*)obj->_instance)->SetSequence(9, true);
                     obj->_position = ParseVec3(origin);
                     this->_objects.push_back(obj);
                 }
@@ -187,8 +187,11 @@ void Program::GameLoop()
     double updateDiff = time - lastUpdateTime;
     if (updateDiff > 1.0/60.0)
     {
-        if (this->_instance != nullptr && Setting("Viewer.PauseAnimation").AsBool() == false)
+        if (this->_instance != nullptr)
             this->_instance->Update(updateDiff);
+
+        for (auto obj = this->_objects.begin(); obj != this->_objects.end(); ++obj)
+            (*obj)->_instance->Update(updateDiff);
 
         lastUpdateTime = time;
     }
@@ -200,16 +203,16 @@ void Program::GameLoop()
 //    {
 //        buf->RenderSubSet(this->_proj * this->_cam.GetViewMatrix(), edges[i].cornerIndices);
 //    }
-    for (int i = 0; i < faces.count; i++)
-    {
-        if (glm::dot(_asset->_faces[i].plane.normal, glm::vec3(0.0f, 0.0f, 1.0f)) < 0.7f)
-            continue;
-        if (_asset->_faces[i].flags != 0)
-            continue;
-        if (_asset->_textures[_asset->_faces[i].texture].Name()[0] == '!')
-            continue;
-        buf->RenderSubSet(this->_proj * this->_cam.GetViewMatrix(), faces[i].cornerIndices);
-    }
+//    for (int i = 0; i < faces.count; i++)
+//    {
+//        if (glm::dot(_asset->_va.Faces()[i].plane.normal, glm::vec3(0.0f, 0.0f, 1.0f)) < 0.7f)
+//            continue;
+//        if (_asset->FaceFlags(i) != 0)
+//            continue;
+//        if (_asset->_textures[_asset->_faces[i].texture].Name()[0] == '!')
+//            continue;
+//        buf->RenderSubSet(this->_proj * this->_cam.GetViewMatrix(), faces[i].cornerIndices);
+//    }
 
     glEnable(GL_ALPHA_TEST);
     glAlphaFunc(GL_GEQUAL, 0.8f);
