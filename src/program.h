@@ -6,9 +6,11 @@
 #include <glm/gtc/quaternion.hpp>
 #include "common/application.h"
 #include "common/camera.h"
-#include <hl1bspasset.h>
-#include <hl1bspinstance.h>
-#include <hl1mdlinstance.h>
+#include <valve/hl1bspasset.h>
+#include <valve/hl1bspinstance.h>
+#include <valve/hl1mdlinstance.h>
+
+using namespace valve;
 
 class Object
 {
@@ -21,7 +23,7 @@ public:
     Object* _parent;
     glm::quat _rotation;
     glm::vec3 _position;
-    Hl1Instance* _instance;
+    AssetInstance* _instance;
 
     void Render(const glm::mat4& proj);
 };
@@ -63,8 +65,8 @@ private:
     bool _pan;
     Camera _cam;
 
-    Hl1BspAsset* _asset;
-    Hl1BspInstance* _instance;
+    hl1::BspAsset* _asset;
+    hl1::BspInstance* _instance;
 
     std::vector<Object*> _objects;
 

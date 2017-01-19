@@ -4,11 +4,13 @@
 #include "common/log.h"
 #include "quickvertexbuffer.h"
 
-#include <hl1bspinstance.h>
+#include <valve/hl1bspinstance.h>
 #include <SDL.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 #include <sstream>
+
+using namespace valve;
 
 Application* gApp = new Program();
 static FileLoggingStrategy fileLogging;
@@ -105,25 +107,25 @@ bool Program::InitializeGraphics()
     if (this->_sys->GetArgs().size() > 1)
     {
         std::string filename = this->_sys->GetArgs()[1];
-        this->_asset = new Hl1BspAsset(FileSystem::LocateDataFile, FileSystem::LoadFileData);
+        this->_asset = new hl1::BspAsset(FileSystem::LocateDataFile, FileSystem::LoadFileData);
         if (this->_asset != nullptr && this->_asset->Load(filename))
         {
-            this->_instance = (Hl1BspInstance*)this->_asset->CreateInstance();
+            this->_instance = new hl1::BspInstance(this->_asset);
 
-            auto mdlAsset = new Hl1MdlAsset(FileSystem::LocateDataFile, FileSystem::LoadFileData);
+            auto mdlAsset = new hl1::MdlAsset(FileSystem::LocateDataFile, FileSystem::LoadFileData);
             mdlAsset->Load("..\\king-of-the-bombspot\\data\\sas.mdl");
 
             for (auto itr = this->_asset->_entities.begin(); itr != _asset->_entities.end(); ++itr)
             {
-                HL1::tBSPEntity& entity = *itr;
+                hl1::tBSPEntity& entity = *itr;
                 if (entity.classname == "info_player_start"
                         && entity.keyvalues.find("origin") != entity.keyvalues.end())
                 {
                     std::string origin = entity.keyvalues.at("origin");
 
                     auto obj = new Object();
-                    obj->_instance = mdlAsset->CreateInstance();
-                    ((Hl1MdlInstance*)obj->_instance)->SetSequence(9, true);
+                    obj->_instance = new hl1::MdlInstance(mdlAsset);
+                    ((hl1::MdlInstance*)obj->_instance)->SetSequence(9, true);
                     obj->_position = ParseVec3(origin);
                     this->_objects.push_back(obj);
                 }
@@ -132,7 +134,7 @@ bool Program::InitializeGraphics()
             edges.Allocate(this->_asset->_edgeData.count);
             for (int f = 0; f < this->_asset->_faceData.count; f++)
             {
-                HL1::tBSPFace& face = this->_asset->_faceData[f];
+                hl1::tBSPFace& face = this->_asset->_faceData[f];
                 for (int e = 0; e < face.edgeCount; e++)
                 {
                     int ei = this->_asset->_surfedgeData[face.firstEdge + e];
@@ -146,7 +148,7 @@ bool Program::InitializeGraphics()
             faces.Allocate(this->_asset->_faceData.count);
             for (int f = 0; f < this->_asset->_faceData.count; f++)
             {
-                HL1::tBSPFace& face = this->_asset->_faceData[f];
+                hl1::tBSPFace& face = this->_asset->_faceData[f];
                 for (int e = 0; e < face.edgeCount; e++)
                 {
                     int ei = this->_asset->_surfedgeData[face.firstEdge + e];

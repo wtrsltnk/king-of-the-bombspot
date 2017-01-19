@@ -2,6 +2,8 @@
 
 #include <fstream>
 
+using namespace valve;
+
 LoadedFileList FileSystem::_loadedFiles;
 
 std::string FileSystem::LocateDataFile(const std::string& filename)
