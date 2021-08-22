@@ -1,19 +1,19 @@
-#include <GL/glextl.h>
+#include <glad/glad.h>
 
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
 
-#include <iostream>
 #include "application.h"
+#include <iostream>
 
 using namespace std;
 
 /// The keymapping is for SDL only
-Uint8* keyMapping = new Uint8[KeyCodes::KeyCodesCount];
+Uint8 *keyMapping = new Uint8[KeyCodes::KeyCodesCount];
 void InitKeyMapping();
 
 /// Temporary key state buffer. This is updated every tick.
-const Uint8* keyStates;
+const Uint8 *keyStates;
 
 System::System(int argc, char *argv[])
 {
@@ -23,11 +23,11 @@ System::System(int argc, char *argv[])
 }
 
 System::~System()
-{ }
+{}
 
-double System::GetTime()
+float System::GetTime()
 {
-    return double(SDL_GetTicks()) / 1000.0;
+    return float(SDL_GetTicks()) / 1000.0f;
 }
 
 bool System::IsKeyDown(unsigned int key)
@@ -38,11 +38,11 @@ bool System::IsKeyDown(unsigned int key)
 class Window_SDL : public Application::Window
 {
 private:
-    SDL_Window* _window;
+    SDL_Window *_window;
     SDL_GLContext _context;
 
 public:
-    Window_SDL(const char* title, int width, int height)
+    Window_SDL(const char *title, int width, int height)
         : Window(), _window(0), _context(0)
     {
         SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
@@ -82,27 +82,27 @@ public:
         return (this->_window != 0 && this->_context != 0);
     }
 
-    SDL_Window* GetWindow() { return this->_window; }
+    SDL_Window *GetWindow() { return this->_window; }
 };
 
-Window_SDL* mainWindow = 0;
+Window_SDL *mainWindow = 0;
 
-Application::Window* Application::MainWindow()
+Application::Window *Application::MainWindow()
 {
     return mainWindow;
 }
 
-Application::Window* Application::AddWindow(const char* title, int width, int height)
+Application::Window *Application::AddWindow(const char *title, int width, int height)
 {
     return new Window_SDL(title, width, height);
 }
 
-void Application::CloseWindow(Application::Window* window)
+void Application::CloseWindow(Application::Window *window)
 {
     delete window;
 }
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
     System sys(argc, argv);
     if (gApp != 0)
@@ -134,7 +134,8 @@ int main(int argc, char* argv[])
                     mainWindow = new Window_SDL(gApp->GetWindowTitle(), width, height);
                     if (mainWindow->IsValid())
                     {
-                        glExtLoadAll((PFNGLGETPROC*)&SDL_GL_GetProcAddress);
+                        gladLoadGL();
+
                         cout << "Functions loaded" << endl;
                         if (gApp->InitializeGraphics())
                         {

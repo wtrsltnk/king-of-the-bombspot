@@ -1,18 +1,21 @@
-#include "program.h"
-#include "filesystem.h"
-#include "common/settings.h"
+
+#include <glad/glad.h>
+
 #include "common/log.h"
+#include "common/settings.h"
+#include "filesystem.h"
+#include "program.h"
 #include "quickvertexbuffer.h"
 
-#include <valve/hl1bspinstance.h>
 #include <SDL.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 #include <sstream>
+#include <valve/hl1bspinstance.h>
 
 using namespace valve;
 
-Application* gApp = new Program();
+Application *gApp = new Program();
 static FileLoggingStrategy fileLogging;
 
 glm::mat4 Object::LocalMatrix() const
@@ -24,7 +27,10 @@ glm::mat4 Object::WorldMatrix() const
 {
     glm::mat4 view = this->LocalMatrix();
 
-    if (this->_parent != nullptr) view = this->_parent->WorldMatrix() * this->LocalMatrix();
+    if (this->_parent != nullptr)
+    {
+        view = this->_parent->WorldMatrix() * this->LocalMatrix();
+    }
 
     return view;
 }
@@ -38,7 +44,6 @@ void Object::Render(const glm::mat4 &proj)
 }
 
 Program::Program()
-    : _pan(false), _lastX(0), _lastY(0), _asset(nullptr), _instance(nullptr)
 {
     Settings::Instance()->LoadFromDisk("king-of-the-bombspot.settings");
     Setting("Viewer.Camera.Speed").Register(200.0f);
@@ -46,45 +51,46 @@ Program::Program()
 }
 
 Program::~Program()
-{ }
+{}
 
-bool Program::InitializeApplication(System* sys)
+bool Program::InitializeApplication(System *sys)
 {
     this->_sys = sys;
 
     return true;
 }
 
-typedef struct {
+typedef struct
+{
     int index;
     std::set<int> neighbours;
     std::vector<int> cornerIndices;
 
 } element;
 
-QuickVertexBuffer* buf = nullptr;
+QuickVertexBuffer *buf = nullptr;
 Array<element> edges;
 Array<element> faces;
 
-std::ostream& operator << (std::ostream& os, const glm::vec2& v)
+std::ostream &operator<<(std::ostream &os, const glm::vec2 &v)
 {
     os << "[" << v[0] << ", " << v[1] << "]";
     return os;
 }
 
-std::ostream& operator << (std::ostream& os, const glm::vec3& v)
+std::ostream &operator<<(std::ostream &os, const glm::vec3 &v)
 {
     os << "[" << v[0] << ", " << v[1] << ", " << v[2] << "]";
     return os;
 }
 
-std::ostream& operator << (std::ostream& os, const glm::vec4& v)
+std::ostream &operator<<(std::ostream &os, const glm::vec4 &v)
 {
     os << "[" << v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << "]";
     return os;
 }
 
-glm::vec3 ParseVec3(const std::string& str)
+glm::vec3 ParseVec3(const std::string &str)
 {
     double x, y, z;
     std::stringstream ss(str);
@@ -94,8 +100,77 @@ glm::vec3 ParseVec3(const std::string& str)
     return glm::vec3(x, y, z);
 }
 
+void OpenGLMessageCallback(
+    unsigned source,
+    unsigned type,
+    unsigned id,
+    unsigned severity,
+    int length,
+    const char *message,
+    const void *userParam)
+{
+    (void)source;
+    (void)type;
+    (void)id;
+    (void)length;
+    (void)userParam;
+
+    std::string strType;
+    switch (type)
+    {
+        case GL_DEBUG_TYPE_ERROR:
+            strType = "GL_DEBUG_TYPE_ERROR";
+            break;
+        case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+            strType = "GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR";
+            break;
+        case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+            strType = "GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR";
+            break;
+        case GL_DEBUG_TYPE_PORTABILITY:
+            strType = "GL_DEBUG_TYPE_PORTABILITY";
+            break;
+        case GL_DEBUG_TYPE_PERFORMANCE:
+            strType = "GL_DEBUG_TYPE_PERFORMANCE";
+            break;
+        case GL_DEBUG_TYPE_OTHER:
+            strType = "GL_DEBUG_TYPE_OTHER";
+            break;
+    }
+
+    switch (severity)
+    {
+        case GL_DEBUG_SEVERITY_HIGH:
+            std::cout << "[" << strType << "] critical " << source << " - " << message << std::endl;
+            return;
+        case GL_DEBUG_SEVERITY_MEDIUM:
+            std::cout << "[" << strType << "] error " << source << " - " << message << std::endl;
+            return;
+        case GL_DEBUG_SEVERITY_LOW:
+            std::cout << "[" << strType << "] warn " << source << " - " << message << std::endl;
+            return;
+        case GL_DEBUG_SEVERITY_NOTIFICATION:
+            std::cout << "[" << strType << "] trace " << source << " - " << message << std::endl;
+            return;
+    }
+
+    std::cout << "Unknown severity level! " << source << " - " << message << std::endl;
+}
+
 bool Program::InitializeGraphics()
 {
+    glEnable(GL_DEBUG_OUTPUT);
+    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+    glDebugMessageCallback(OpenGLMessageCallback, nullptr);
+
+    glDebugMessageControl(
+        GL_DONT_CARE,
+        GL_DONT_CARE,
+        GL_DEBUG_SEVERITY_NOTIFICATION,
+        0,
+        NULL,
+        GL_FALSE);
+
     std::cout << "GL_VERSION                  : " << glGetString(GL_VERSION) << std::endl;
     std::cout << "GL_SHADING_LANGUAGE_VERSION : " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
     std::cout << "GL_RENDERER                 : " << glGetString(GL_RENDERER) << std::endl;
@@ -113,19 +188,18 @@ bool Program::InitializeGraphics()
             this->_instance = new hl1::BspInstance(this->_asset);
 
             auto mdlAsset = new hl1::MdlAsset(FileSystem::LocateDataFile, FileSystem::LoadFileData);
-            mdlAsset->Load("..\\king-of-the-bombspot\\data\\sas.mdl");
+            mdlAsset->Load("data\\sas.mdl");
 
-            for (auto itr = this->_asset->_entities.begin(); itr != _asset->_entities.end(); ++itr)
+            for (auto &entity : this->_asset->_entities)
             {
-                hl1::tBSPEntity& entity = *itr;
-                if (entity.classname == "info_player_start"
-                        && entity.keyvalues.find("origin") != entity.keyvalues.end())
+                if (entity.classname == "info_player_start" && entity.keyvalues.find("origin") != entity.keyvalues.end())
                 {
                     std::string origin = entity.keyvalues.at("origin");
 
+                    std::cout << entity.classname << " @ " << origin << std::endl;
                     auto obj = new Object();
                     obj->_instance = new hl1::MdlInstance(mdlAsset);
-                    ((hl1::MdlInstance*)obj->_instance)->SetSequence(9, true);
+                    ((hl1::MdlInstance *)obj->_instance)->SetSequence(9, true);
                     obj->_position = ParseVec3(origin);
                     this->_objects.push_back(obj);
                 }
@@ -134,7 +208,7 @@ bool Program::InitializeGraphics()
             edges.Allocate(this->_asset->_edgeData.count);
             for (int f = 0; f < this->_asset->_faceData.count; f++)
             {
-                hl1::tBSPFace& face = this->_asset->_faceData[f];
+                hl1::tBSPFace &face = this->_asset->_faceData[f];
                 for (int e = 0; e < face.edgeCount; e++)
                 {
                     int ei = this->_asset->_surfedgeData[face.firstEdge + e];
@@ -148,7 +222,7 @@ bool Program::InitializeGraphics()
             faces.Allocate(this->_asset->_faceData.count);
             for (int f = 0; f < this->_asset->_faceData.count; f++)
             {
-                hl1::tBSPFace& face = this->_asset->_faceData[f];
+                hl1::tBSPFace &face = this->_asset->_faceData[f];
                 for (int e = 0; e < face.edgeCount; e++)
                 {
                     int ei = this->_asset->_surfedgeData[face.firstEdge + e];
@@ -162,7 +236,10 @@ bool Program::InitializeGraphics()
             }
 
             std::vector<glm::vec3> verts;
-            for (int v = 0; v < _asset->_verticesData.count; v++) verts.push_back(_asset->_verticesData[v].point);
+            for (int v = 0; v < _asset->_verticesData.count; v++)
+            {
+                verts.push_back(_asset->_verticesData[v].point);
+            }
             buf = new QuickVertexBuffer(GL_LINES, verts);
         }
     }
@@ -171,29 +248,45 @@ bool Program::InitializeGraphics()
 
 void Program::GameLoop()
 {
-    static double lastTime = this->_sys->GetTime();
-    static double lastUpdateTime = this->_sys->GetTime();
+    static float lastTime = this->_sys->GetTime();
+    static float lastUpdateTime = this->_sys->GetTime();
 
-    double time = this->_sys->GetTime();
-    double diff = time - lastTime;
-    double speed = double(Setting("Viewer.Camera.Speed").AsFloat());
+    float time = this->_sys->GetTime();
+    float diff = time - lastTime;
+    float speed = Setting("Viewer.Camera.Speed").AsFloat();
 
-    if (this->_sys->IsKeyDown(KeyCodes::Character_A)) this->_cam.MoveLeft(diff * speed);
-    else if (this->_sys->IsKeyDown(KeyCodes::Character_D)) this->_cam.MoveLeft(-diff * speed);
+    if (this->_sys->IsKeyDown(KeyCodes::Character_A))
+    {
+        this->_cam.MoveLeft(diff * speed);
+    }
+    else if (this->_sys->IsKeyDown(KeyCodes::Character_D))
+    {
+        this->_cam.MoveLeft(-diff * speed);
+    }
 
-    if (this->_sys->IsKeyDown(KeyCodes::Character_W)) this->_cam.MoveForward(diff * speed);
-    else if (this->_sys->IsKeyDown(KeyCodes::Character_S)) this->_cam.MoveForward(-diff * speed);
+    if (this->_sys->IsKeyDown(KeyCodes::Character_W))
+    {
+        this->_cam.MoveForward(diff * speed);
+    }
+    else if (this->_sys->IsKeyDown(KeyCodes::Character_S))
+    {
+        this->_cam.MoveForward(-diff * speed);
+    }
 
     lastTime = time;
 
-    double updateDiff = time - lastUpdateTime;
-    if (updateDiff > 1.0/60.0)
+    float updateDiff = time - lastUpdateTime;
+    if (updateDiff > 1.0 / 60.0)
     {
         if (this->_instance != nullptr)
+        {
             this->_instance->Update(updateDiff);
+        }
 
         for (auto obj = this->_objects.begin(); obj != this->_objects.end(); ++obj)
+        {
             (*obj)->_instance->Update(updateDiff);
+        }
 
         lastUpdateTime = time;
     }
@@ -201,20 +294,20 @@ void Program::GameLoop()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glDisable(GL_ALPHA_TEST);
-//    for (int i = 0; i < edges.count; i++)
-//    {
-//        buf->RenderSubSet(this->_proj * this->_cam.GetViewMatrix(), edges[i].cornerIndices);
-//    }
-//    for (int i = 0; i < faces.count; i++)
-//    {
-//        if (glm::dot(_asset->_va.Faces()[i].plane.normal, glm::vec3(0.0f, 0.0f, 1.0f)) < 0.7f)
-//            continue;
-//        if (_asset->FaceFlags(i) != 0)
-//            continue;
-//        if (_asset->_textures[_asset->_faces[i].texture].Name()[0] == '!')
-//            continue;
-//        buf->RenderSubSet(this->_proj * this->_cam.GetViewMatrix(), faces[i].cornerIndices);
-//    }
+    //    for (int i = 0; i < edges.count; i++)
+    //    {
+    //        buf->RenderSubSet(this->_proj * this->_cam.GetViewMatrix(), edges[i].cornerIndices);
+    //    }
+    //    for (int i = 0; i < faces.count; i++)
+    //    {
+    //        if (glm::dot(_asset->_va.Faces()[i].plane.normal, glm::vec3(0.0f, 0.0f, 1.0f)) < 0.7f)
+    //            continue;
+    //        if (_asset->FaceFlags(i) != 0)
+    //            continue;
+    //        if (_asset->_textures[_asset->_faces[i].texture].Name()[0] == '!')
+    //            continue;
+    //        buf->RenderSubSet(this->_proj * this->_cam.GetViewMatrix(), faces[i].cornerIndices);
+    //    }
 
     glEnable(GL_ALPHA_TEST);
     glAlphaFunc(GL_GEQUAL, 0.8f);
@@ -223,8 +316,10 @@ void Program::GameLoop()
         this->_instance->Render(this->_proj, this->_cam.GetViewMatrix());
     }
 
-    for (auto obj = this->_objects.begin(); obj != this->_objects.end(); ++obj)
-        (*obj)->Render(this->_proj * this->_cam.GetViewMatrix());
+    for (auto obj : this->_objects)
+    {
+        obj->Render(this->_proj * this->_cam.GetViewMatrix());
+    }
 }
 
 bool Program::IsRunning()
@@ -233,7 +328,7 @@ bool Program::IsRunning()
     return !state[SDL_SCANCODE_ESCAPE];
 }
 
-void Program:: Resize(int w, int h)
+void Program::Resize(int w, int h)
 {
     if (h < 1) h = 1;
 
@@ -253,27 +348,44 @@ void Program::MouseMove(int x, int y)
 {
     if (this->_pan)
     {
-        this->_cam.RotateZ(glm::radians(float(this->_lastX-x) * 0.1f));
-        this->_cam.RotateX(glm::radians(float(this->_lastY-y) * 0.1f));
+        this->_cam.RotateZ(glm::radians(float(this->_lastX - x) * 0.1f));
+        this->_cam.RotateX(glm::radians(float(this->_lastY - y) * 0.1f));
     }
 
     this->_lastX = x;
     this->_lastY = y;
 }
 
-void Program::MouseButtonUp(int button, int x, int y)
+void Program::MouseButtonUp(
+    int button,
+    int x,
+    int y)
 {
+    (void)button;
+    (void)x;
+    (void)y;
+
     this->_pan = false;
 }
 
-void Program::MouseWheel(int x, int y)
-{ }
-
-void Program::KeyAction(int key, int action)
+void Program::MouseWheel(
+    int x,
+    int y)
 {
-    if (key == SDLK_SPACE && action) Setting("Viewer.PauseAnimation") = !Setting("Viewer.PauseAnimation").AsBool();
-    else if (key == SDLK_KP_PLUS && action) Setting("Viewer.Camera.Speed") = Setting("Viewer.Camera.Speed").AsFloat() + 5.0f;
-    else if (key == SDLK_KP_MINUS && action) Setting("Viewer.Camera.Speed") = Setting("Viewer.Camera.Speed").AsFloat() - 5.0f;
+    (void)x;
+    (void)y;
+}
+
+void Program::KeyAction(
+    int key,
+    int action)
+{
+    if (key == SDLK_SPACE && action)
+        Setting("Viewer.PauseAnimation") = !Setting("Viewer.PauseAnimation").AsBool();
+    else if (key == SDLK_KP_PLUS && action)
+        Setting("Viewer.Camera.Speed") = Setting("Viewer.Camera.Speed").AsFloat() + 5.0f;
+    else if (key == SDLK_KP_MINUS && action)
+        Setting("Viewer.Camera.Speed") = Setting("Viewer.Camera.Speed").AsFloat() - 5.0f;
 }
 
 void Program::Close()

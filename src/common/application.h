@@ -14,7 +14,7 @@ public:
     std::vector<std::string>& GetArgs() { return _args; }
 
     /// Gets the time since application start, 1.0 = 1 second
-    double GetTime();
+    float GetTime();
 
     /// Gets if a key is down
     bool IsKeyDown(unsigned int key);
